@@ -5,7 +5,7 @@ Each tool serves a specific purpose for device configuration, calibration, data 
 
 ## Build Requirements
 
-- CMake 3.0 or higher
+- CMake 3.10 or higher
 - C compiler (GCC, Clang, or Visual Studio 2022)
 - libhydrasdr development libraries
 
