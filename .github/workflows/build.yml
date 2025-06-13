@@ -1,0 +1,129 @@
+name: Build HydraSDR Host Tools and DLL
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2019
+            name: "Windows-x64"
+          - os: ubuntu-22.04
+            name: "Ubuntu-22.04"
+          - os: ubuntu-24.04
+            name: "Ubuntu-24.04"
+
+    name: ${{ matrix.name }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # === Linux Dependencies ===
+    - name: Install Linux dependencies
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake pkg-config libusb-1.0-0-dev
+
+    # === Windows Dependencies ===
+    - name: Setup Windows build tools
+      if: runner.os == 'Windows'
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Download Windows dependencies
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        # Download dependencies
+        Invoke-WebRequest "https://github.com/libusb/libusb/releases/download/v1.0.23/libusb-1.0.23.7z" -OutFile "libusb.7z"
+        Invoke-WebRequest "https://gcc.gnu.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip" -OutFile "pthreads.zip"
+        
+        # Extract libusb
+        New-Item -ItemType Directory -Path "deps\libusb" -Force
+        7z x libusb.7z -o"deps\libusb"
+        
+        # Extract pthreads
+        Expand-Archive pthreads.zip -DestinationPath "temp" -Force
+        $prebuilt = Get-ChildItem "temp" -Recurse -Directory | Where-Object { $_.Name -eq "Pre-built.2" }
+        New-Item -ItemType Directory -Path "deps\pthreads" -Force
+        Copy-Item "$($prebuilt.FullName)\*" -Destination "deps\pthreads" -Recurse -Force
+        Remove-Item "temp" -Recurse -Force
+
+    # === Build Configuration ===
+    - name: Configure build (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DINSTALL_UDEV_RULES=OFF
+
+    - name: Configure build (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        cmake -B build -G "Visual Studio 16 2019" -A x64 `
+          -DLIBUSB_INCLUDE_DIR="$PWD\deps\libusb\include\libusb-1.0" `
+          -DLIBUSB_LIBRARIES="$PWD\deps\libusb\MS64\dll\libusb-1.0.lib" `
+          -DTHREADS_PTHREADS_INCLUDE_DIR="$PWD\deps\pthreads\include" `
+          -DTHREADS_PTHREADS_WIN32_LIBRARY="$PWD\deps\pthreads\lib\x64\pthreadVC2.lib"
+
+    # === Build ===
+    - name: Build
+      run: cmake --build build --config Release --parallel
+
+    # === Package Artifacts ===
+    - name: Extract version
+      shell: bash
+      run: |
+        VERSION=$(grep '#define HYDRASDR_VERSION' libhydrasdr/src/hydrasdr.h | sed 's/.*"\([^"]*\)".*/\1/')
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+    - name: Package artifacts (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        mkdir -p "hydrasdr-host-tools-${{ matrix.name }}-v${{ env.VERSION }}"
+        cp build/libhydrasdr/src/libhydrasdr.so* "hydrasdr-host-tools-${{ matrix.name }}-v${{ env.VERSION }}/" 2>/dev/null || true
+        cp build/hydrasdr-tools/src/hydrasdr_* "hydrasdr-host-tools-${{ matrix.name }}-v${{ env.VERSION }}/"
+
+    - name: Package artifacts (Windows)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        $dir = "hydrasdr-host-tools-${{ matrix.name }}-v${{ env.VERSION }}"
+        New-Item -ItemType Directory -Path $dir -Force
+        Copy-Item "build\libhydrasdr\src\Release\*.lib" $dir -ErrorAction SilentlyContinue
+        Copy-Item "build\hydrasdr-tools\src\hydrasdr.dll" $dir -ErrorAction SilentlyContinue
+        Copy-Item "deps\libusb\MS64\dll\libusb-1.0.dll" $dir -ErrorAction SilentlyContinue
+        Copy-Item "deps\pthreads\dll\x64\pthreadVC2.dll" $dir -ErrorAction SilentlyContinue
+        Copy-Item "build\hydrasdr-tools\src\Release\*.exe" $dir
+
+    - name: Test (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        export LD_LIBRARY_PATH=build/libhydrasdr/src:$LD_LIBRARY_PATH
+        build/hydrasdr-tools/src/hydrasdr_lib_version
+        timeout 10s build/hydrasdr-tools/src/hydrasdr_info || echo "No HydraSDR hardware detected (normal in CI environment)"
+
+    - name: Test (Windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: |
+        copy deps\libusb\MS64\dll\libusb-1.0.dll build\hydrasdr-tools\src\Release\ >nul 2>&1
+        copy deps\pthreads\dll\x64\pthreadVC2.dll build\hydrasdr-tools\src\Release\ >nul 2>&1
+        copy build\hydrasdr-tools\src\hydrasdr.dll build\hydrasdr-tools\src\Release\ >nul 2>&1
+        build\hydrasdr-tools\src\Release\hydrasdr_lib_version.exe
+        timeout 10 build\hydrasdr-tools\src\Release\hydrasdr_info.exe >nul 2>&1 || echo No HydraSDR hardware detected (normal in CI environment)
+        exit /b 0
+
+    # === Upload ===
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: hydrasdr-host-tools-${{ matrix.name }}-v${{ env.VERSION }}
+        path: hydrasdr-host-tools-${{ matrix.name }}-v${{ env.VERSION }}/*
+        retention-days: 30
