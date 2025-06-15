@@ -38,8 +38,8 @@ For more details see https://github.com/libusb/libusb/issues & https://github.co
 * Extract **libusb-1.0.23.7z** to rfone_host directory
   * You should have **rfone_host\libusb-1.0.23**
     * Inside this directory there is README.txt, libusb-1.0.def and some directories
-* Download ftp://mirrors.kernel.org/sourceware/pthreads-win32/pthreads-w32-2-9-1-release.zip
-* Extract **pthreads-w32-2-9-1-release.zip** to rfone_host directory
+* Download https://gcc.gnu.org/pub/pthreads-win32/pthreads-w32-2-9-1-release.zip
+* Extract **pthreads-w32-2-9-1-release.zip** to rfone_host directory **libpthread-2-9-1-win**
   * You should have **rfone_host\libpthread-2-9-1-win**
     * Inside this directory there is lot of README files and some directories (dll, include, lib)
 * Launch rfone_host\libhydrasdr\vc\hydrasdr_2019.sln with VisualStudio 2019, choose **Release** and **Build Solution**
