@@ -74,6 +74,9 @@ typedef int bool;
 #define LIBUSB_CTRL_TIMEOUT_MS (500)
 #define LIBUSB_CTRL_TIMEOUT_CHIPERASE_MS (32000) // W25Q80DV Chip Erase Time up to 8s or 64KB Erase Block(s)(16blocks of 64KB) 32s max
 
+#define HYDRASDR_EXPECTED_FW_PREFIX "HydraSDR RFOne"
+#define HYDRASDR_EXPECTED_FW_PREFIX_LEN (14)
+
 typedef struct {
 	uint64_t freq_hz;
 } set_freq_params_t;
@@ -625,6 +628,7 @@ static void hydrasdr_open_device(hydrasdr_device_t* device,
 	int serial_descriptor_index;
 	struct libusb_device_descriptor device_descriptor;
 	unsigned char serial_number[SERIAL_HYDRASDR_EXPECTED_SIZE + 1];
+	char firmware_version[255 + 1];
 
 	libusb_dev_handle = &device->usb_device;
 	*libusb_dev_handle = NULL;
@@ -697,6 +701,24 @@ static void hydrasdr_open_device(hydrasdr_device_t* device,
 								*libusb_dev_handle = NULL;
 								continue;
 							}
+
+							// Verify this is a legitimate HydraSDR device by checking firmware version string
+							result = hydrasdr_version_string_read(device, &firmware_version[0], 255);
+							if (result != HYDRASDR_SUCCESS) {
+								libusb_release_interface(dev_handle, 0);
+								libusb_close(dev_handle);
+								*libusb_dev_handle = NULL;
+								continue;
+							}
+
+							// Check if firmware version string starts with expected prefix
+							if (strncmp(firmware_version, HYDRASDR_EXPECTED_FW_PREFIX, HYDRASDR_EXPECTED_FW_PREFIX_LEN) != 0) {
+								libusb_release_interface(dev_handle, 0);
+								libusb_close(dev_handle);
+								*libusb_dev_handle = NULL;
+								continue;
+							}
+
 							break;
 						}
 						else
@@ -742,6 +764,24 @@ static void hydrasdr_open_device(hydrasdr_device_t* device,
 						*libusb_dev_handle = NULL;
 						continue;
 					}
+
+					// Verify this is a legitimate HydraSDR device by checking firmware version string
+					result = hydrasdr_version_string_read(device, &firmware_version[0], 255);
+					if (result != HYDRASDR_SUCCESS) {
+						libusb_release_interface(dev_handle, 0);
+						libusb_close(dev_handle);
+						*libusb_dev_handle = NULL;
+						continue;
+					}
+
+					// Check if firmware version string starts with expected prefix
+					if (strncmp(firmware_version, HYDRASDR_EXPECTED_FW_PREFIX, HYDRASDR_EXPECTED_FW_PREFIX_LEN) != 0) {
+						libusb_release_interface(dev_handle, 0);
+						libusb_close(dev_handle);
+						*libusb_dev_handle = NULL;
+						continue;
+					}
+
 					break;
 				}
 			}
