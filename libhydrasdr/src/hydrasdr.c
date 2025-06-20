@@ -45,8 +45,8 @@ typedef int bool;
 #define false 0
 #endif
 
-#define PACKET_SIZE (12)
-#define UNPACKED_SIZE (16)
+#define UNPACKED_SIZE (16) /* ADC Sample unpacked size in bits */
+#define PACKED_SIZE (12) /* ADC Sample Packed size in bits */
 #define RAW_BUFFER_COUNT (8)
 
 #ifdef HYDRASDR_BIG_ENDIAN
@@ -1978,7 +1978,18 @@ int hydrasdr_list_devices(uint64_t *serials, int count)
 			return  HYDRASDR_ERROR_LIBUSB;
 		}
 
-		packing_enabled = value ? true : false;
+		if(value == 1)
+		{
+			/* 1 = Enable Packing */
+			packing_enabled = true;
+		} else
+		{
+			/* 
+			 0 = Disable Packing, 
+			 2 = Disable Packing+Header
+			*/
+			packing_enabled = false;
+		}
 		if (packing_enabled != device->packing_enabled)
 		{
 			cancel_transfers(device);
