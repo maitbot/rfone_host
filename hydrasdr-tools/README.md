@@ -19,3 +19,7 @@ Complete reference for all HydraSDR command line utilities including usage examp
 
 ### [Frequency Calibration Procedure](hydrasdr_calibration_procedure.md)
 Step-by-step guide for calibrating the frequency accuracy of your HydraSDR RFOne device using PPB corrections, including measurement techniques and verification steps.
+
+### [HydraSDR RFOne Troubleshooting](hydrasdr_troubleshooting.md)
+Comprehensive troubleshooting guide for HydraSDR RFOne performance issues, focusing on achieving optimal throughput (10MSPS) and resolving USB/CPU bottlenecks.
+Covers platform-specific solutions for Windows, Linux, and macOS, hardware requirements, external clock verification, VMWare configuration fixes, and multi-device setups for coherent receiver arrays.
