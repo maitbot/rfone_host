@@ -931,23 +931,27 @@ static int hydrasdr_open_init(hydrasdr_device_t** device, uint64_t serial_number
 	if (result == HYDRASDR_SUCCESS)
 	{
 		lib_device->supported_samplerates = (uint32_t *) malloc(lib_device->supported_samplerate_count * sizeof(uint32_t));
+		if (lib_device->supported_samplerates == NULL)
+		{
+			hydrasdr_open_exit(lib_device);
+			free(lib_device);
+			return HYDRASDR_ERROR_NO_MEM;
+		}
 		result = hydrasdr_read_samplerates_from_fw(lib_device, lib_device->supported_samplerates, lib_device->supported_samplerate_count);
 		if (result != HYDRASDR_SUCCESS)
 		{
 			free(lib_device->supported_samplerates);
+			hydrasdr_open_exit(lib_device);
+			free(lib_device->supported_samplerates);
+			free(lib_device);
+			return result;
 		}
 	}
-
-	if (result != HYDRASDR_SUCCESS)
+	else
 	{
-		lib_device->supported_samplerate_count = 2;
-		lib_device->supported_samplerates = (uint32_t *) malloc(lib_device->supported_samplerate_count * sizeof(uint32_t));
-		if (lib_device->supported_samplerates == NULL)
-		{
-			return HYDRASDR_ERROR_NO_MEM;
-		}
-		lib_device->supported_samplerates[0] = 10000000;
-		lib_device->supported_samplerates[1] = 2500000;
+		hydrasdr_open_exit(lib_device);
+		free(lib_device);
+		return result;
 	}
 
 	hydrasdr_set_packing(lib_device, 0);
@@ -955,6 +959,7 @@ static int hydrasdr_open_init(hydrasdr_device_t** device, uint64_t serial_number
 	result = allocate_transfers(lib_device);
 	if (result != 0)
 	{
+		free_transfers(lib_device);
 		hydrasdr_open_exit(lib_device);
 		free(lib_device->supported_samplerates);
 		free(lib_device);
