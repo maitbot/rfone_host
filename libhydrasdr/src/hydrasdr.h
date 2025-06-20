@@ -145,9 +145,6 @@ extern ADDAPI int ADDCALL hydrasdr_is_streaming(struct hydrasdr_device* device);
 extern ADDAPI int ADDCALL hydrasdr_si5351c_write(struct hydrasdr_device* device, uint8_t register_number, uint8_t value);
 extern ADDAPI int ADDCALL hydrasdr_si5351c_read(struct hydrasdr_device* device, uint8_t register_number, uint8_t* value);
 
-extern ADDAPI int ADDCALL hydrasdr_config_write(struct hydrasdr_device* device, const uint8_t page_index, const uint16_t length, unsigned char *data);
-extern ADDAPI int ADDCALL hydrasdr_config_read(struct hydrasdr_device* device, const uint8_t page_index, const uint16_t length, unsigned char *data);
-
 extern ADDAPI int ADDCALL hydrasdr_r82x_write(struct hydrasdr_device* device, uint8_t register_number, uint8_t value);
 extern ADDAPI int ADDCALL hydrasdr_r82x_read(struct hydrasdr_device* device, uint8_t register_number, uint8_t* value);
 
