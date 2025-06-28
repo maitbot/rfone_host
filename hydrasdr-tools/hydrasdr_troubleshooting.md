@@ -21,7 +21,7 @@ We created a set of command line utilities to help troubleshooting the performan
 Ubuntu users: 22.04 / 24.04 LTS is highly recommended.
 - **Building HydraSDR RFOne, gr-osmosdr and gqrx:**
     1. Download the [hydrasdr_rfone_host_git](https://github.com/hydrasdr/rfone_host) repository, compile it, install it
-    1. Download the [gr-osmosdr](http://git.osmocom.org/gr-osmosdr) repository, compile it, install it
+    1. Download the [gr-osmosdr hydrasdr fork](https://github.com/hydrasdr/gr-osmosdr) repository, compile it, install it
     1. Download the [gqrx](https://github.com/csete/gqrx.git) repository, compile it, install it
     1. Get pulseaudio using standard Arch way
     1. Configure pulseaudio (add user and group, such things)
