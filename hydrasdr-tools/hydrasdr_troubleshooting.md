@@ -62,9 +62,9 @@ Post here only if minimum hardware requirements match:
 - 2GB of RAM (to run your own OS, HydraSDR RFOne barely needs 1MB of memory)
 - High speed USB 2.0/3.0 controller
 
-It seems a recommended cheap USB2.0/3.0 Controller is the "NEC uPD720202 / NEC Renesas µPD720202"
-Which can be found for example on:
-http://www.amazon.com/dp/B00ID0C4GC/ref=cm_sw_su_dp
+Cheap StarTech.com 4 Port PCI Express PCIe SuperSpeed USB 2.0/3.0 Controller (PEXUSB3S4V) which can be found on following links:
+- https://www.amazon.com/StarTech-com-Express-SuperSpeed-Controller-Adapter/dp/B009AT5SVS
+- https://www.startech.com/en-fr/cards-adapters/pexusb3s4v
 
 More feedback are welcome about those cheap PCIe USB2.0/3.0 controller to ensure they work fine with HydraSDR RFOne + Host Tools (especially with Windows, Linux & MacOS).
 
