@@ -134,6 +134,110 @@ Debug version:
 (from root)
 `useradd -a -G plugdev <user>`
 
+## How to build the rfone_host software on MacOS
+
+### Prerequisites
+
+### Minimum macOS Version
+- macOS 10.15 (Catalina) or newer, on x86-64
+- macOS 11 (Big Sur) or newer, on arm64 (Apple Silicon)
+
+### Install Homebrew (if not already installed)
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+### Install required dependencies
+```bash
+brew install cmake libusb pkg-config git
+```
+
+### Building from source
+
+#### Clone the repository
+```bash
+git clone https://github.com/hydrasdr/rfone_host.git rfone_host
+cd rfone_host
+mkdir build
+cd build
+```
+
+#### Configure and build
+
+#### For Intel Macs (x86_64):
+```bash
+cmake .. -DCMAKE_OSX_ARCHITECTURES=x86_64 -DINSTALL_UDEV_RULES=OFF
+make
+sudo make install
+```
+
+#### For Apple Silicon Macs (ARM64):
+```bash
+cmake .. -DCMAKE_OSX_ARCHITECTURES=arm64 -DINSTALL_UDEV_RULES=OFF
+make
+sudo make install
+```
+
+#### For Universal Binary (Intel + ARM64):
+```bash
+cmake .. -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DINSTALL_UDEV_RULES=OFF
+make
+sudo make install
+```
+
+#### Debug build (optional)
+For development or debugging purposes:
+```bash
+cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_OSX_ARCHITECTURES=arm64 -DINSTALL_UDEV_RULES=OFF
+make
+sudo make install
+```
+
+#### Post-installation
+
+#### Update dynamic linker cache
+```bash
+sudo update_dyld_shared_cache
+```
+
+#### Verify installation
+Check that the tools are properly installed:
+```bash
+hydrasdr_info
+```
+
+#### Platform-specific notes
+
+#### macOS Permissions
+On modern macOS versions, you may need to grant permissions for USB device access:
+1. Go to System Preferences → Security & Privacy → Privacy
+2. Add your terminal application to "Input Monitoring" if prompted
+3. For development, you may need to disable System Integrity Protection (SIP) temporarily
+
+#### Universal Binary Considerations
+- Building universal binaries requires both Intel and ARM64 versions of all dependencies
+- Homebrew on Apple Silicon installs ARM64 versions by default
+- For Intel versions on Apple Silicon, use: `arch -x86_64 brew install <package>`
+
+#### Troubleshooting
+
+#### If cmake fails to find libusb:
+```bash
+export PKG_CONFIG_PATH="/opt/homebrew/lib/pkgconfig:$PKG_CONFIG_PATH"
+```
+For Intel Macs, use `/usr/local/lib/pkgconfig` instead of `/opt/homebrew/lib/pkgconfig`.
+
+#### If you encounter permission issues:
+```bash
+sudo chown -R $(whoami) /usr/local/lib/pkgconfig
+```
+
+#### For Apple Silicon specific issues:
+Some older build scripts may not recognize the ARM64 architecture. If you encounter issues, try:
+```bash
+export ARCHFLAGS="-arch arm64"
+```
+
 https://www.hydrasdr.com
 
-This file is part of HydraSDR (based on HackRF project see https://greatscottgadgets.com/hackrf/).
+This file is part of HydraSDR™ RFOne Copyright © 2025 Benjamin VERNOUX. All rights reserved. (based on HackRF project see https://greatscottgadgets.com/hackrf/).
