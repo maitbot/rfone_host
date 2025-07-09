@@ -3,7 +3,7 @@ HydraSDR RFOne
 
 A tiny, efficient and ultra evolutive software defined radio.
 
-This repository contains host software (Linux/Windows) for HydraSDR RFOne, a project to
+This repository contains host software (Linux/Windows/MacOS) for HydraSDR RFOne, a project to
 produce a low cost and extensible open source software radio platform.
 
 HydraSDR: https://www.hydrasdr.com
