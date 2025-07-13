@@ -1,4 +1,13 @@
-name: Build HydraSDR Host Tools and DLL
+# Copyright (c) 2025, Benjamin Vernoux <bvernoux@hydrasdr.com>
+# 
+# This workflow is licensed exclusively for HydraSDR products and related development.
+# Unauthorized use, modification, or distribution for non-HydraSDR products is prohibited.
+# All rights reserved.
+#
+# HydraSDR RFOne Host Tools Build and Release Workflow
+# For more information about HydraSDR products: https://hydrasdr.com
+
+name: Build and Release HydraSDR RFOne Host Tools + Shared Lib / DLL (Windows, GNU/Linux, MacOS)
 
 on:
   push:
@@ -20,6 +29,10 @@ jobs:
             name: "Ubuntu-22.04"
           - os: ubuntu-24.04
             name: "Ubuntu-24.04"
+          - os: macos-14
+            name: "macOS-ARM64"
+          - os: macos-13
+            name: "macOS-x86_64"
 
     name: ${{ matrix.name }}
 
@@ -32,6 +45,14 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential cmake pkg-config libusb-1.0-0-dev
+
+    # === macOS Dependencies ===
+    - name: Install macOS dependencies
+      if: runner.os == 'macOS'
+      env:
+        HOMEBREW_NO_AUTO_UPDATE: 1
+      run: |
+        brew install --quiet cmake libusb pkg-config
 
     # === Windows Dependencies ===
     - name: Setup Windows build tools
@@ -63,6 +84,15 @@ jobs:
       run: |
         cmake -B build -DCMAKE_BUILD_TYPE=Release -DINSTALL_UDEV_RULES=OFF
 
+    - name: Configure build (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        if [ "${{ matrix.name }}" = "macOS-ARM64" ]; then
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64
+        else
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=x86_64
+        fi
+
     - name: Configure build (Windows)
       if: runner.os == 'Windows'
       run: |
@@ -74,7 +104,13 @@ jobs:
 
     # === Build ===
     - name: Build
-      run: cmake --build build --config Release --parallel
+      run: |
+        if [ "${{ runner.os }}" = "macOS" ]; then
+          cmake --build build --config Release --parallel $(sysctl -n hw.ncpu)
+        else
+          cmake --build build --config Release --parallel
+        fi
+      shell: bash
 
     # === Package Artifacts ===
     - name: Extract version
@@ -89,6 +125,13 @@ jobs:
         mkdir -p "hydrasdr-host-tools-${{ matrix.name }}-v${{ env.VERSION }}"
         cp build/libhydrasdr/src/libhydrasdr.so* "hydrasdr-host-tools-${{ matrix.name }}-v${{ env.VERSION }}/" 2>/dev/null || true
         cp build/hydrasdr-tools/src/hydrasdr_* "hydrasdr-host-tools-${{ matrix.name }}-v${{ env.VERSION }}/"
+
+    - name: Package artifacts (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        mkdir -p "hydrasdr-host-tools-${{ matrix.name }}-v${{ env.VERSION }}"
+        cp build/libhydrasdr/src/libhydrasdr.dylib* "hydrasdr-host-tools-${{ matrix.name }}-v${{ env.VERSION }}/" 2>/dev/null || true
+        cp build/hydrasdr-tools/src/hydrasdr_* "hydrasdr-host-tools-${{ matrix.name }}-v${{ env.VERSION }}/" 2>/dev/null || true
 
     - name: Package artifacts (Windows)
       if: runner.os == 'Windows'
@@ -106,6 +149,13 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         export LD_LIBRARY_PATH=build/libhydrasdr/src:$LD_LIBRARY_PATH
+        build/hydrasdr-tools/src/hydrasdr_lib_version
+        timeout 10s build/hydrasdr-tools/src/hydrasdr_info || echo "No HydraSDR hardware detected (normal in CI environment)"
+
+    - name: Test (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        export DYLD_LIBRARY_PATH=build/libhydrasdr/src:$DYLD_LIBRARY_PATH
         build/hydrasdr-tools/src/hydrasdr_lib_version
         timeout 10s build/hydrasdr-tools/src/hydrasdr_info || echo "No HydraSDR hardware detected (normal in CI environment)"
 
@@ -127,3 +177,198 @@ jobs:
         name: hydrasdr-host-tools-${{ matrix.name }}-v${{ env.VERSION }}
         path: hydrasdr-host-tools-${{ matrix.name }}-v${{ env.VERSION }}/*
         retention-days: 30
+
+  build_linux_distros:
+    runs-on: ubuntu-latest
+    container: ${{ matrix.container }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - container: "debian:bookworm"
+            name: "Debian-12"
+          - container: "fedora:40"
+            name: "Fedora-40"
+          - container: "almalinux:9"
+            name: "AlmaLinux-9"
+          - container: "archlinux:latest"
+            name: "ArchLinux"
+          - container: "opensuse/tumbleweed:latest"
+            name: "openSUSE-Tumbleweed"
+
+    name: ${{ matrix.name }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # === Linux Distribution Dependencies ===
+    - name: Install Debian/Ubuntu dependencies
+      if: contains(matrix.container, 'debian') || contains(matrix.container, 'ubuntu')
+      run: |
+        apt-get update
+        apt-get install -y build-essential cmake pkg-config libusb-1.0-0-dev
+
+    - name: Install Fedora dependencies
+      if: contains(matrix.container, 'fedora')
+      run: |
+        dnf update -y
+        dnf install -y gcc gcc-c++ cmake pkg-config libusb1-devel make
+
+    - name: Install AlmaLinux/RHEL dependencies
+      if: contains(matrix.container, 'almalinux') || contains(matrix.container, 'rocky') || contains(matrix.container, 'centos')
+      run: |
+        dnf update -y
+        dnf install -y gcc gcc-c++ cmake pkg-config libusb1-devel make epel-release
+        dnf config-manager --set-enabled crb || dnf config-manager --set-enabled powertools || true
+
+    - name: Install Arch Linux dependencies
+      if: contains(matrix.container, 'archlinux')
+      run: |
+        pacman -Syu --noconfirm
+        pacman -S --noconfirm base-devel cmake pkg-config libusb
+
+    - name: Install openSUSE dependencies
+      if: contains(matrix.container, 'opensuse')
+      run: |
+        zypper refresh
+        zypper install -y gcc gcc-c++ cmake pkg-config libusb-1_0-devel make
+
+    # === Build Configuration ===
+    - name: Configure build (Linux Distros)
+      run: |
+        if [[ "${{ matrix.container }}" == *"archlinux"* ]] || [[ "${{ matrix.container }}" == *"opensuse"* ]]; then
+          # Force C11 standard for rolling release distros that default to C23
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DINSTALL_UDEV_RULES=OFF -DCMAKE_C_STANDARD=11
+        else
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DINSTALL_UDEV_RULES=OFF
+        fi
+
+    # === Build ===
+    - name: Build (Linux Distros)
+      run: cmake --build build --config Release --parallel
+
+    # === Package Artifacts ===
+    - name: Extract version
+      shell: bash
+      run: |
+        VERSION=$(grep '#define HYDRASDR_VERSION' libhydrasdr/src/hydrasdr.h | sed 's/.*"\([^"]*\)".*/\1/')
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+    - name: Package artifacts (Linux Distros)
+      run: |
+        mkdir -p "hydrasdr-host-tools-${{ matrix.name }}-v${{ env.VERSION }}"
+        cp build/libhydrasdr/src/libhydrasdr.so* "hydrasdr-host-tools-${{ matrix.name }}-v${{ env.VERSION }}/" 2>/dev/null || true
+        cp build/hydrasdr-tools/src/hydrasdr_* "hydrasdr-host-tools-${{ matrix.name }}-v${{ env.VERSION }}/"
+
+    - name: Test (Linux Distros)
+      run: |
+        export LD_LIBRARY_PATH=build/libhydrasdr/src:$LD_LIBRARY_PATH
+        build/hydrasdr-tools/src/hydrasdr_lib_version
+        timeout 10s build/hydrasdr-tools/src/hydrasdr_info || echo "No HydraSDR hardware detected (normal in CI environment)"
+
+    # === Upload ===
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: hydrasdr-host-tools-${{ matrix.name }}-v${{ env.VERSION }}
+        path: hydrasdr-host-tools-${{ matrix.name }}-v${{ env.VERSION }}/*
+        retention-days: 30
+
+  create_full_archive:
+    needs: [build, build_linux_distros]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download All Builds
+      uses: actions/download-artifact@v4
+
+    - name: Create platform-specific archives
+      run: |
+        mkdir hydrasdr_all
+        for dir in hydrasdr-host-tools-*; do
+          if [ -d "$dir" ]; then
+            echo "Creating archive for $dir"
+            if [[ "$dir" == *"Windows"* ]]; then
+              # Use ZIP for Windows
+              cd "$dir" && zip -r "../hydrasdr_all/${dir}.zip" . && cd ..
+            else
+              # Use tar.gz for Linux/macOS
+              tar -czf "hydrasdr_all/${dir}.tar.gz" -C "$dir" .
+            fi
+          fi
+        done
+        echo "Contents of hydrasdr_all:"
+        ls -la hydrasdr_all/
+
+    - name: Upload Full Archive
+      uses: actions/upload-artifact@v4
+      with:
+        name: hydrasdr_all
+        path: hydrasdr_all/*
+
+  update_nightly_release:
+    needs: [create_full_archive]
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    steps:
+    - name: Download All Builds
+      uses: actions/download-artifact@v4
+      
+    - name: List downloaded artifacts
+      run: |
+        echo "Downloaded artifacts:"
+        ls -la
+        echo "Contents of hydrasdr_all:"
+        ls -la hydrasdr_all/ || echo "hydrasdr_all directory not found"
+      
+    - name: Create or Update Nightly Release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Delete existing nightly release completely to ensure clean slate
+        echo "Deleting existing nightly release..."
+        gh release delete nightly -R ${{github.repository}} --yes || echo "Nightly release doesn't exist or already deleted"
+        
+        # Create fresh nightly release
+        echo "Creating fresh nightly release..."
+        gh release create nightly -R ${{github.repository}} --title "Nightly Build" --notes "Automated nightly build from CI - Built from commit ${{ github.sha }}" --prerelease
+        
+        # Upload platform-specific archives from hydrasdr_all
+        if [ -d "hydrasdr_all" ] && [ "$(ls -A hydrasdr_all)" ]; then
+          echo "Uploading platform-specific archives..."
+          gh release upload nightly hydrasdr_all/* -R ${{github.repository}}
+        else
+          echo "No archive files found in hydrasdr_all directory"
+        fi
+
+    - name: Update Release Notes
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh release edit nightly -R ${{github.repository}} --notes "Automated nightly build from CI
+
+        **Built from commit:** ${{ github.sha }}
+        **Build Date:** $(date -u)
+        **Branch:** ${{ github.ref_name }}
+
+        ## Available Builds:
+        - Windows x64
+        - GNU/Linux: Ubuntu 22.04 & 24.04
+        - GNU/Linux: Debian 12 (Bookworm)
+        - GNU/Linux: Fedora 40
+        - GNU/Linux: AlmaLinux 9
+        - GNU/Linux: Arch Linux
+        - GNU/Linux: openSUSE Tumbleweed
+        - macOS ARM64 (Apple Silicon)
+        - macOS x86_64 (Intel)
+
+        ## Installation:
+        1. Download the appropriate archive for your platform
+        2. Extract the archive
+        3. Follow the README.md instructions for your platform
+        4. Ensure libusb 1.0.23 is installed (avoid 1.0.24 due to known issues)
+
+        ## Notes:
+        - This is an automated build and may contain experimental features
+        - For stable releases, use the tagged releases instead
+        - Report issues at https://github.com/${{github.repository}}/issues"
