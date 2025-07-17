@@ -177,29 +177,30 @@ jobs:
       if: matrix.create_deb == true
       shell: bash
       run: |
-        source <(cat << 'EOF'
-        create_deb_package() {
-          local PACKAGE_VERSION="${{ needs.extract-version.outputs.version }}"
-          local ARCH="amd64"
-          local PACKAGE_DIR="${{ env.PACKAGE_NAME }}_${PACKAGE_VERSION}_${ARCH}"
-          
-          # Create package directory structure
-          mkdir -p "${PACKAGE_DIR}/DEBIAN"
-          mkdir -p "${PACKAGE_DIR}/usr/lib"
-          mkdir -p "${PACKAGE_DIR}/usr/bin"
-          mkdir -p "${PACKAGE_DIR}/usr/share/doc/${{ env.PACKAGE_NAME }}"
-          mkdir -p "${PACKAGE_DIR}/etc/udev/rules.d"
-          
-          # Copy binaries and libraries
-          cp build/libhydrasdr/src/libhydrasdr.so* "${PACKAGE_DIR}/usr/lib/" 2>/dev/null || true
-          cp build/hydrasdr-tools/src/hydrasdr_* "${PACKAGE_DIR}/usr/bin/"
-          
-          # Copy udev rules file from repository
-          cp hydrasdr-tools/51-hydrasdr.rules "${PACKAGE_DIR}/etc/udev/rules.d/51-hydrasdr.rules"
-          
-          # Create control file
-          cat > "${PACKAGE_DIR}/DEBIAN/control" << CONTROL_EOF
-        Package: ${{ env.PACKAGE_NAME }}
+        PACKAGE_VERSION="${{ needs.extract-version.outputs.version }}"
+        ARCH="amd64"
+        
+        # Use the standard package name for internal package creation
+        PACKAGE_NAME_FULL="${{ env.PACKAGE_NAME }}"
+        PACKAGE_DIR="${PACKAGE_NAME_FULL}_${PACKAGE_VERSION}_${ARCH}"
+        
+        # Create package directory structure
+        mkdir -p "${PACKAGE_DIR}/DEBIAN"
+        mkdir -p "${PACKAGE_DIR}/usr/lib"
+        mkdir -p "${PACKAGE_DIR}/usr/bin"
+        mkdir -p "${PACKAGE_DIR}/usr/share/doc/${PACKAGE_NAME_FULL}"
+        mkdir -p "${PACKAGE_DIR}/etc/udev/rules.d"
+        
+        # Copy binaries and libraries
+        cp build/libhydrasdr/src/libhydrasdr.so* "${PACKAGE_DIR}/usr/lib/" 2>/dev/null || true
+        cp build/hydrasdr-tools/src/hydrasdr_* "${PACKAGE_DIR}/usr/bin/"
+        
+        # Copy udev rules file from repository
+        cp hydrasdr-tools/51-hydrasdr.rules "${PACKAGE_DIR}/etc/udev/rules.d/51-hydrasdr.rules"
+        
+        # Create control file
+        cat > "${PACKAGE_DIR}/DEBIAN/control" << EOF
+        Package: ${PACKAGE_NAME_FULL}
         Version: ${PACKAGE_VERSION}
         Section: electronics
         Priority: optional
@@ -215,11 +216,13 @@ jobs:
           - libhydrasdr shared library
           - Command-line tools (hydrasdr_info, hydrasdr_lib_version, etc.)
           - Development headers and pkg-config files
+         .
+         Built for: ${{ matrix.name }}
         Homepage: ${{ env.HOMEPAGE }}
-        CONTROL_EOF
-          
-          # Create maintenance scripts
-          cat > "${PACKAGE_DIR}/DEBIAN/postinst" << 'POSTINST_EOF'
+        EOF
+        
+        # Create maintenance scripts
+        cat > "${PACKAGE_DIR}/DEBIAN/postinst" << 'EOF'
         #!/bin/bash
         set -e
         if [ "$1" = "configure" ]; then
@@ -227,21 +230,21 @@ jobs:
           command -v ldconfig >/dev/null 2>&1 && ldconfig || true
         fi
         exit 0
-        POSTINST_EOF
-          
-          cat > "${PACKAGE_DIR}/DEBIAN/postrm" << 'POSTRM_EOF'
+        EOF
+        
+        cat > "${PACKAGE_DIR}/DEBIAN/postrm" << 'EOF'
         #!/bin/bash
         set -e
         if [ "$1" = "remove" ] || [ "$1" = "purge" ]; then
           command -v ldconfig >/dev/null 2>&1 && ldconfig || true
         fi
         exit 0
-        POSTRM_EOF
-          
-          chmod 755 "${PACKAGE_DIR}/DEBIAN/postinst" "${PACKAGE_DIR}/DEBIAN/postrm"
-          
-          # Create documentation
-          cat > "${PACKAGE_DIR}/usr/share/doc/${{ env.PACKAGE_NAME }}/copyright" << COPYRIGHT_EOF
+        EOF
+        
+        chmod 755 "${PACKAGE_DIR}/DEBIAN/postinst" "${PACKAGE_DIR}/DEBIAN/postrm"
+        
+        # Create documentation
+        cat > "${PACKAGE_DIR}/usr/share/doc/${PACKAGE_NAME_FULL}/copyright" << EOF
         Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
         Upstream-Name: HydraSDR RFOne Host Tools
         Upstream-Contact: ${{ env.MAINTAINER }}
@@ -253,34 +256,41 @@ jobs:
          This software is licensed exclusively for HydraSDR products and related development.
          Unauthorized use, modification, or distribution for non-HydraSDR products is prohibited.
          All rights reserved.
-        COPYRIGHT_EOF
-          
-          cat > "${PACKAGE_DIR}/usr/share/doc/${{ env.PACKAGE_NAME }}/changelog.Debian" << CHANGELOG_EOF
-        ${{ env.PACKAGE_NAME }} (${PACKAGE_VERSION}) unstable; urgency=medium
+        EOF
         
-          * Automated build from CI
+        cat > "${PACKAGE_DIR}/usr/share/doc/${PACKAGE_NAME_FULL}/changelog.Debian" << EOF
+        ${PACKAGE_NAME_FULL} (${PACKAGE_VERSION}) unstable; urgency=medium
+        
+          * Automated build from CI for ${{ matrix.name }}
           * Built from commit ${{ github.sha }}
         
          -- ${{ env.MAINTAINER }}  $(date -R)
-        CHANGELOG_EOF
-          
-          gzip -9 "${PACKAGE_DIR}/usr/share/doc/${{ env.PACKAGE_NAME }}/changelog.Debian"
-          
-          # Set permissions
-          find "${PACKAGE_DIR}" -type d -exec chmod 755 {} \;
-          find "${PACKAGE_DIR}/usr/bin" -type f -exec chmod 755 {} \;
-          find "${PACKAGE_DIR}/usr/lib" -name "*.so*" -exec chmod 644 {} \;
-          chmod 644 "${PACKAGE_DIR}/etc/udev/rules.d/51-hydrasdr.rules"
-          
-          # Build and verify package
-          dpkg-deb --build "${PACKAGE_DIR}"
-          dpkg-deb --info "${PACKAGE_DIR}.deb"
-          dpkg-deb --contents "${PACKAGE_DIR}.deb"
-          echo "Created .deb package: ${PACKAGE_DIR}.deb"
-        }
         EOF
-        )
-        create_deb_package
+        
+        gzip -9 "${PACKAGE_DIR}/usr/share/doc/${PACKAGE_NAME_FULL}/changelog.Debian"
+        
+        # Set permissions
+        find "${PACKAGE_DIR}" -type d -exec chmod 755 {} \;
+        find "${PACKAGE_DIR}/usr/bin" -type f -exec chmod 755 {} \;
+        find "${PACKAGE_DIR}/usr/lib" -name "*.so*" -exec chmod 644 {} \;
+        chmod 644 "${PACKAGE_DIR}/etc/udev/rules.d/51-hydrasdr.rules"
+        
+        # Build package
+        dpkg-deb --build "${PACKAGE_DIR}"
+        
+        # Rename to distribution-specific name
+        DIST_SPECIFIC_NAME="${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v${PACKAGE_VERSION}.deb"
+        mv "${PACKAGE_DIR}.deb" "${DIST_SPECIFIC_NAME}"
+        
+        # Verify the package
+        dpkg-deb --info "${DIST_SPECIFIC_NAME}"
+        dpkg-deb --contents "${DIST_SPECIFIC_NAME}"
+        echo "Created distribution-specific .deb package: ${DIST_SPECIFIC_NAME}"
+        
+        # Debug: Show what files exist
+        echo "=== Files in current directory after .deb creation ==="
+        ls -la *.deb 2>/dev/null || echo "No .deb files found"
+        ls -la ${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v*.deb 2>/dev/null || echo "No distribution-specific .deb files found"
 
     # === Testing ===
     - name: Test (Linux)
@@ -315,6 +325,16 @@ jobs:
         name: ${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v${{ needs.extract-version.outputs.version }}
         path: ${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v${{ needs.extract-version.outputs.version }}/*
         retention-days: 30
+
+    - name: Debug .deb files before upload
+      if: matrix.create_deb == true
+      run: |
+        echo "=== Debug: Looking for .deb files to upload ==="
+        echo "Current directory: $(pwd)"
+        echo "Looking for pattern: ${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v*.deb"
+        find . -name "*.deb" -type f | head -10
+        find . -name "${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v*.deb" -type f | head -10
+        ls -la ${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v*.deb 2>/dev/null || echo "No files match the pattern"
 
     - name: Upload .deb package
       if: matrix.create_deb == true
