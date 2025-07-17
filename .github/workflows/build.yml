@@ -321,7 +321,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v${{ needs.extract-version.outputs.version }}-deb
-        path: "*.deb"
+        path: "${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v*.deb"
         retention-days: 30
 
     - name: Upload .rpm package
@@ -329,7 +329,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v${{ needs.extract-version.outputs.version }}-rpm
-        path: "*.rpm"
+        path: "${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v*.rpm"
         retention-days: 30
 
     - name: Upload .pkg.tar package
@@ -337,7 +337,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v${{ needs.extract-version.outputs.version }}-pkg
-        path: "*.pkg.tar.*"
+        path: "${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v*.pkg.tar.*"
         retention-days: 30
 
   build_linux_distros:
@@ -656,9 +656,14 @@ jobs:
         
         # Build and verify package
         dpkg-deb --build "${PACKAGE_DIR}"
-        dpkg-deb --info "${PACKAGE_DIR}.deb"
-        dpkg-deb --contents "${PACKAGE_DIR}.deb"
-        echo "Created .deb package: ${PACKAGE_DIR}.deb"
+        
+        # Rename to distribution-specific name
+        DIST_SPECIFIC_NAME="${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v${PACKAGE_VERSION}.deb"
+        mv "${PACKAGE_DIR}.deb" "${DIST_SPECIFIC_NAME}"
+        
+        dpkg-deb --info "${DIST_SPECIFIC_NAME}"
+        dpkg-deb --contents "${DIST_SPECIFIC_NAME}"
+        echo "Created distribution-specific .deb package: ${DIST_SPECIFIC_NAME}"
 
     # === Create .rpm package for Red Hat family (Fedora/AlmaLinux/openSUSE) ===
     - name: Create .rpm package
@@ -816,13 +821,23 @@ jobs:
           --define "_builddir $HOME/rpmbuild/BUILD" \
           --define "_buildrootdir $HOME/rpmbuild/BUILDROOT"
         
-        # Copy the built RPM to current directory
+        # Copy the built RPM to current directory and rename to distribution-specific name
         find ~/rpmbuild/RPMS -name "*.rpm" -exec cp {} . \;
         
-        # Verify the package
+        # Rename RPM to distribution-specific name
         for rpm_file in *.rpm; do
           if [ -f "$rpm_file" ]; then
-            echo "Created RPM package: $rpm_file"
+            DIST_SPECIFIC_NAME="${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v${PACKAGE_VERSION}.rpm"
+            mv "$rpm_file" "$DIST_SPECIFIC_NAME"
+            echo "Renamed $rpm_file to $DIST_SPECIFIC_NAME"
+            break
+          fi
+        done
+        
+        # Verify the renamed package
+        for rpm_file in ${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v*.rpm; do
+          if [ -f "$rpm_file" ]; then
+            echo "Created distribution-specific RPM package: $rpm_file"
             rpm -qip "$rpm_file" || echo "Could not query package info"
             rpm -qlp "$rpm_file" || echo "Could not query package files"
           fi
@@ -924,14 +939,31 @@ jobs:
         fi
         
         echo "Found package: $BUILT_PACKAGE"
-        cp "$BUILT_PACKAGE" "$ORIGINAL_DIR/"
+        
+        # Rename to distribution-specific name
+        # Extract the extension (e.g., pkg.tar.zst, pkg.tar.xz)
+        if [[ "$BUILT_PACKAGE" == *.pkg.tar.zst ]]; then
+          EXT="pkg.tar.zst"
+        elif [[ "$BUILT_PACKAGE" == *.pkg.tar.xz ]]; then
+          EXT="pkg.tar.xz"
+        elif [[ "$BUILT_PACKAGE" == *.pkg.tar.gz ]]; then
+          EXT="pkg.tar.gz"
+        else
+          EXT="pkg.tar.zst"  # Default fallback
+        fi
+        
+        DIST_SPECIFIC_NAME="${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v${PACKAGE_VERSION}.${EXT}"
+        mv "$BUILT_PACKAGE" "$DIST_SPECIFIC_NAME"
+        echo "Renamed $BUILT_PACKAGE to $DIST_SPECIFIC_NAME"
+        
+        cp "$DIST_SPECIFIC_NAME" "$ORIGINAL_DIR/"
         
         cd "$ORIGINAL_DIR"
         
-        # Verify the package
-        for pkg_file in *.pkg.tar.*; do
+        # Verify the renamed package
+        for pkg_file in ${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v*.pkg.tar.*; do
           if [ -f "$pkg_file" ]; then
-            echo "Created Arch package: $pkg_file"
+            echo "Created distribution-specific Arch package: $pkg_file"
             tar -tf "$pkg_file" | head -20 || echo "Could not list package contents"
             echo "Package size: $(du -h "$pkg_file")"
             break
@@ -957,7 +989,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v${{ needs.extract-version.outputs.version }}-deb
-        path: "*.deb"
+        path: "${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v*.deb"
         retention-days: 30
 
     - name: Upload .rpm package
@@ -965,7 +997,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v${{ needs.extract-version.outputs.version }}-rpm
-        path: "*.rpm"
+        path: "${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v*.rpm"
         retention-days: 30
 
     - name: Upload .pkg.tar package
@@ -973,7 +1005,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v${{ needs.extract-version.outputs.version }}-pkg
-        path: "*.pkg.tar.*"
+        path: "${{ env.PACKAGE_NAME }}-${{ matrix.name }}-v*.pkg.tar.*"
         retention-days: 30
 
   create_full_archive:
@@ -987,11 +1019,11 @@ jobs:
       run: |
         mkdir hydrasdr_all
         
-        # First, copy all native package files
+        # First, copy all native package files (now with distribution-specific names)
         echo "=== Copying native packages ==="
-        find . -name "*.deb" -exec cp {} hydrasdr_all/ \;
-        find . -name "*.rpm" -exec cp {} hydrasdr_all/ \;
-        find . -name "*.pkg.tar.*" -exec cp {} hydrasdr_all/ \;
+        find . -name "${{ env.PACKAGE_NAME }}-*-v*.deb" -exec cp {} hydrasdr_all/ \;
+        find . -name "${{ env.PACKAGE_NAME }}-*-v*.rpm" -exec cp {} hydrasdr_all/ \;
+        find . -name "${{ env.PACKAGE_NAME }}-*-v*.pkg.tar.*" -exec cp {} hydrasdr_all/ \;
         
         # Count native packages
         DEB_COUNT=$(find hydrasdr_all -name "*.deb" | wc -l)
@@ -1159,10 +1191,13 @@ jobs:
         #### Debian/Ubuntu/Linux Mint (.deb packages):
         \`\`\`bash
         # Download the appropriate .deb file for your distribution
-        wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/[package-name].deb
+        # Examples:
+        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Ubuntu-22.04-LTS-Jammy-Jellyfish-v1.0.1.deb
+        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Ubuntu-24.04-LTS-Noble-Numbat-v1.0.1.deb
+        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Debian-12-Bookworm-v1.0.1.deb
         
         # Install the package
-        sudo dpkg -i [package-name].deb
+        sudo dpkg -i hydrasdr-host-tools-[DISTRIBUTION]-v[VERSION].deb
         sudo apt-get install -f  # Fix any dependency issues if needed
         
         # Add your user to plugdev group for device access
@@ -1172,11 +1207,13 @@ jobs:
 
         #### Fedora/AlmaLinux (.rpm packages):
         \`\`\`bash
-        # Download the appropriate .rpm file
-        wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/[package-name].rpm
+        # Download the appropriate .rpm file for your distribution
+        # Examples:
+        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Fedora-42-v1.0.1.rpm
+        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-AlmaLinux-9-v1.0.1.rpm
         
         # Install with automatic dependency resolution
-        sudo dnf install ./[package-name].rpm
+        sudo dnf install ./hydrasdr-host-tools-[DISTRIBUTION]-v[VERSION].rpm
         
         # Add your user to plugdev group for device access
         sudo usermod -a -G plugdev \$USER
@@ -1185,10 +1222,10 @@ jobs:
         #### openSUSE (.rpm packages):
         \`\`\`bash
         # Download the appropriate .rpm file
-        wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/[package-name].rpm
+        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-openSUSE-Tumbleweed-v1.0.1.rpm
         
         # Install with automatic dependency resolution
-        sudo zypper install ./[package-name].rpm
+        sudo zypper install ./hydrasdr-host-tools-openSUSE-Tumbleweed-v[VERSION].rpm
         
         # Add your user to plugdev group for device access
         sudo usermod -a -G plugdev \$USER
@@ -1197,10 +1234,10 @@ jobs:
         #### Arch Linux (.pkg.tar.zst packages):
         \`\`\`bash
         # Download the .pkg.tar.zst file
-        wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/[package-name].pkg.tar.zst
+        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Arch-Linux-v1.0.1.pkg.tar.zst
         
         # Install with pacman
-        sudo pacman -U [package-name].pkg.tar.zst
+        sudo pacman -U hydrasdr-host-tools-Arch-Linux-v[VERSION].pkg.tar.zst
         
         # Add your user to plugdev group for device access
         sudo usermod -a -G plugdev \$USER
@@ -1249,8 +1286,12 @@ jobs:
         Ubuntu 22.04 and 24.04 also provide .zip archives for automated workflows:
         \`\`\`bash
         # Download Ubuntu .zip archive (for CI/CD)
-        wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Ubuntu-22.04-v[version].zip
-        unzip hydrasdr-host-tools-Ubuntu-22.04-v[version].zip
+        wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Ubuntu-22.04-LTS-Jammy-Jellyfish-v1.0.1.zip
+        unzip hydrasdr-host-tools-Ubuntu-22.04-LTS-Jammy-Jellyfish-v1.0.1.zip
+        
+        # Or for Ubuntu 24.04:
+        wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Ubuntu-24.04-LTS-Noble-Numbat-v1.0.1.zip
+        unzip hydrasdr-host-tools-Ubuntu-24.04-LTS-Noble-Numbat-v1.0.1.zip
         \`\`\`
 
         ## System Requirements:
@@ -1266,13 +1307,15 @@ jobs:
         - **Digital signatures** - All packages built in secure CI environment  
 
         ## Comprehensive Distribution Coverage:
-        This release provides native packages for **major GNU/Linux distributions** including all current LTS versions of Ubuntu, stable Debian releases, latest Fedora versions, and rolling-release distributions.
-        Choose the package that matches your distribution for the best user experience.
+        This release provides native packages for **major GNU/Linux distributions** including all current LTS versions of Ubuntu, stable Debian releases, latest Fedora versions, and rolling-release distributions. 
+        
+        **Distribution-specific naming**: All packages use clear, descriptive names that identify their target distribution (e.g., `hydrasdr-host-tools-Ubuntu-22.04-LTS-Jammy-Jellyfish-v1.0.1.deb`, `hydrasdr-host-tools-Fedora-42-v1.0.1.rpm`).
         
         **Special provision**: Ubuntu 22.04 and 24.04 provide both native .deb packages (recommended for users) and .zip archives (required for automated firmware build workflows).
 
         ## Notes:
         - **Native packages strongly recommended** for easiest installation experience
+        - **Distribution-specific naming** - All packages clearly identify their target distribution
         - **Generic archives** provided for Windows, macOS, and unsupported Linux distributions
         - **Ubuntu ZIP archives** provided for CI/CD workflows (firmware builds)
         - **Native packages** handle dependencies, system integration, and updates automatically
