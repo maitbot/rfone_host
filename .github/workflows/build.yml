@@ -1006,6 +1006,12 @@ jobs:
         echo "=== Creating archives ==="
         for dir in ${{ env.PACKAGE_NAME }}-*; do
           if [ -d "$dir" ]; then
+            # Skip package artifact directories (they end with -deb, -rpm, -pkg)
+            if [[ "$dir" == *"-deb" ]] || [[ "$dir" == *"-rpm" ]] || [[ "$dir" == *"-pkg" ]]; then
+              echo "Skipping package artifact directory: $dir"
+              continue
+            fi
+            
             echo "Processing directory: $dir"
             
             # Always create archives for Windows and macOS (no native packages)
