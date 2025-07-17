@@ -431,8 +431,6 @@ jobs:
             pkg_manager: "dnf"
             create_rpm: true
             deps: "gcc gcc-c++ cmake pkg-config libusb1-devel make rpm-build rpmdevtools tar gzip"
-            force_c11: true
-            extra_config: "-DCMAKE_C_FLAGS=-std=c11"
           - container: "fedora:41"
             name: "Fedora-41"
             pkg_manager: "dnf"
@@ -453,15 +451,11 @@ jobs:
             pkg_manager: "pacman"
             create_pkg: true
             deps: "base-devel cmake pkg-config libusb sudo"
-            force_c11: true
-            extra_config: "-DCMAKE_C_FLAGS=-std=c11"
           - container: "opensuse/tumbleweed:latest"
             name: "openSUSE-Tumbleweed"
             pkg_manager: "zypper"
             create_rpm: true
             deps: "gcc gcc-c++ cmake pkg-config libusb-1_0-devel make rpm-build rpmdevtools tar gzip"
-            force_c11: true
-            extra_config: "-DCMAKE_C_FLAGS=-std=c11"
 
     name: ${{ matrix.name }}
 
@@ -519,11 +513,6 @@ jobs:
     - name: Configure build
       run: |
         CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Release -DINSTALL_UDEV_RULES=OFF"
-        
-        # Add C11 standard flag if needed
-        if [ "${{ matrix.force_c11 || 'false' }}" = "true" ]; then
-          CMAKE_FLAGS="$CMAKE_FLAGS -DCMAKE_C_STANDARD=11"
-        fi
         
         # Add extra configuration if specified
         if [ -n "${{ matrix.extra_config }}" ]; then
