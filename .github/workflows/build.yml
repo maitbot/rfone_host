@@ -1260,7 +1260,8 @@ jobs:
         - **Digital signatures** - All packages built in secure CI environment  
 
         ## Comprehensive Distribution Coverage:
-        This release provides native packages for **13 major GNU/Linux distributions** including all current LTS versions of Ubuntu, stable Debian releases, latest Fedora versions, and rolling-release distributions. Choose the package that matches your distribution for the best user experience.
+        This release provides native packages for **major GNU/Linux distributions** including all current LTS versions of Ubuntu, stable Debian releases, latest Fedora versions, and rolling-release distributions.
+        Choose the package that matches your distribution for the best user experience.
         
         **Special provision**: Ubuntu 22.04 and 24.04 provide both native .deb packages (recommended for users) and .zip archives (required for automated firmware build workflows).
 
