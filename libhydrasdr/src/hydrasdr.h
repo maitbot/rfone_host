@@ -28,10 +28,10 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 #include <stdint.h>
 #include "hydrasdr_commands.h"
 
-#define HYDRASDR_VERSION "1.0.1"
+#define HYDRASDR_VERSION "1.0.2"
 #define HYDRASDR_VER_MAJOR 1
 #define HYDRASDR_VER_MINOR 0
-#define HYDRASDR_VER_REVISION 1
+#define HYDRASDR_VER_REVISION 2
 
 #ifdef _WIN32
 	 #define ADD_EXPORTS
@@ -78,6 +78,7 @@ enum hydrasdr_error
 enum hydrasdr_board_id
 {
 	HYDRASDR_BOARD_ID_PROTO_HYDRASDR  = 0,
+	HYDRASDR_BOARD_ID_HYDRASDR_RFONE_OFFICIAL = 1,
 	HYDRASDR_BOARD_ID_INVALID = 0xFF,
 };
 
