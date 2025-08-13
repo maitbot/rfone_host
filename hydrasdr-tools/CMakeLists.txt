@@ -22,7 +22,8 @@
 # Based heavily upon the libftdi cmake setup.
 
 cmake_minimum_required(VERSION 3.10)
-project(hydrasdr-tools C)
+project(hydrasdr-tools LANGUAGES C VERSION 1.0)
+include(GNUInstallDirs)
 set(MAJOR_VERSION 1)
 set(MINOR_VERSION 0)
 set(PACKAGE hydrasdr-tools)
@@ -41,10 +42,7 @@ add_definitions(-Wall)
 endif()
 
 if(NOT libhydrasdr_SOURCE_DIR)
-find_package(LIBHYDRASDR REQUIRED)
-include_directories(${LIBHYDRASDR_INCLUDE_DIR})
-else()
-include_directories(${libhydrasdr_SOURCE_DIR}/src)
+find_package(HydraSDR REQUIRED)
 endif()
 
 add_subdirectory(src)

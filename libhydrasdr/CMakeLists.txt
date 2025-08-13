@@ -19,10 +19,11 @@
 # Boston, MA 02110-1301, USA.
 #
 
-# Based heavily upon the libftdi cmake setup.
-
 cmake_minimum_required(VERSION 3.10)
-project(libhydrasdr C)
+project(libhydrasdr LANGUAGES C)
+include(GNUInstallDirs)
+include(GenerateExportHeader)
+
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/src/hydrasdr.h HYDRASDR_H_CONTENTS)
 
 STRING(REGEX MATCH "\#define HYDRASDR_VER_MAJOR[ \t]+([0-9]+)" HYDRASDR_VER_MJ ${HYDRASDR_H_CONTENTS})
@@ -38,7 +39,6 @@ set(HYDRASDR_VER_MAJOR ${HYDRASDR_VER_MJ})
 set(HYDRASDR_VER_MINOR ${HYDRASDR_VER_MI})
 set(HYDRASDR_VER_REVISION ${HYDRASDR_VER_RE})
 
-set(PACKAGE libhydrasdr)
 set(VERSION_STRING ${HYDRASDR_VER_MAJOR}.${HYDRASDR_VER_MINOR})
 set(VERSION ${VERSION_STRING})
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/../cmake/modules)
@@ -68,18 +68,55 @@ if(MSVC)
 else()
 	add_definitions(-Wall)
 
-	INCLUDE(TestBigEndian)
+	include(TestBigEndian)
 	TEST_BIG_ENDIAN(BIGENDIAN)
 	if(${BIGENDIAN})
 		 add_definitions(-DHYDRASDR_BIG_ENDIAN)
 	endif(${BIGENDIAN})
 endif()
-find_package(USB1 REQUIRED)
+find_package(LIBUSB REQUIRED)
 find_package(Threads REQUIRED)
 
-include_directories(${LIBUSB_INCLUDE_DIR} ${THREADS_PTHREADS_INCLUDE_DIR})
-
 add_subdirectory(src)
+
+########################################################################
+# Create Cmake Config-file package interface
+########################################################################
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/HydraSDR/HydraSDRConfigVersion.cmake"
+  VERSION ${VERSION_STRING}
+  COMPATIBILITY AnyNewerVersion
+)
+
+export(EXPORT HydraSDRTargets
+  FILE "${CMAKE_CURRENT_BINARY_DIR}/HydraSDR/HydraSDRTargets.cmake"
+  NAMESPACE HydraSDR::
+)
+configure_file(HydraSDRConfig.cmake
+  "${CMAKE_CURRENT_BINARY_DIR}/HydraSDR/HydraSDRConfig.cmake"
+  COPYONLY
+)
+
+set(ConfigPackageLocation ${CMAKE_INSTALL_LIBDIR}/cmake/HydraSDR)
+install(EXPORT HydraSDRTargets
+  FILE
+    HydraSDRTargets.cmake
+  NAMESPACE
+    HydraSDR::
+  DESTINATION
+    ${ConfigPackageLocation}
+)
+install(
+  FILES
+    HydraSDRConfig.cmake
+    ../cmake/modules/FindLIBUSB.cmake
+    "${CMAKE_CURRENT_BINARY_DIR}/HydraSDR/HydraSDRConfigVersion.cmake"
+  DESTINATION
+    ${ConfigPackageLocation}
+  COMPONENT
+    Devel
+)
 
 ########################################################################
 # Create Pkg Config File

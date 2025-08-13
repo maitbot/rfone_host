@@ -1,7 +1,9 @@
 #top dir cmake project for libhydrasdr + hydrasdr-tools
 
 cmake_minimum_required(VERSION 3.10)
-project (hydrasdr_all)
+project(hydrasdr_all LANGUAGES C HOMEPAGE_URL https://hydrasdr.com/)
+set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 #provide missing strtoull() for VC11
 if(MSVC11)
@@ -42,4 +44,3 @@ if(WIN32 AND MINGW)
 	 ${CMAKE_CURRENT_BINARY_DIR}/hydrasdr-tools/src/libwinpthread-1.dll
  COPYONLY)
 endif()
-

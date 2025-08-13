@@ -23,7 +23,6 @@
 # HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-# Based heavily upon the libftdi cmake setup.
 
 # Targets
 set(c_sources ${CMAKE_CURRENT_SOURCE_DIR}/hydrasdr.c ${CMAKE_CURRENT_SOURCE_DIR}/iqconverter_float.c  ${CMAKE_CURRENT_SOURCE_DIR}/iqconverter_int16.c CACHE INTERNAL "List of C sources")
@@ -68,9 +67,21 @@ endif()
 set_target_properties(hydrasdr PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 set_target_properties(hydrasdr-static PROPERTIES CLEAN_DIRECT_OUTPUT 1)
 
+target_include_directories(
+  hydrasdr PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+                  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+                  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/libhydrasdr>)
+target_include_directories(
+  hydrasdr-static PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+                  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+                  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/libhydrasdr>)
+
 # Dependencies
-target_link_libraries(hydrasdr ${LIBUSB_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-   
+target_link_libraries(hydrasdr PRIVATE LIBUSB::LIBUSB Threads::Threads)
+target_link_libraries(hydrasdr-static PUBLIC LIBUSB::LIBUSB Threads::Threads)
+
+generate_export_header(hydrasdr)
+
 # For cygwin just force UNIX OFF and WIN32 ON
 if( ${CYGWIN} )
   SET(UNIX OFF)
@@ -78,17 +89,13 @@ if( ${CYGWIN} )
 endif( ${CYGWIN} )
 
 if( ${UNIX} )
-   install(TARGETS hydrasdr
-           LIBRARY DESTINATION lib${LIB_SUFFIX}
+   install(TARGETS hydrasdr EXPORT HydraSDRTargets
+           LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
            COMPONENT sharedlibs
            )
-   install(TARGETS hydrasdr-static
-           ARCHIVE DESTINATION lib${LIB_SUFFIX}
+   install(TARGETS hydrasdr-static EXPORT HydraSDRTargets
+           ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
            COMPONENT staticlibs
-           )
-   install(FILES ${c_headers}
-           DESTINATION include/${PROJECT_NAME}
-           COMPONENT headers
            )
 endif( ${UNIX} )
 
@@ -101,8 +108,10 @@ if( ${WIN32} )
            DESTINATION bin
            COMPONENT staticlibs
            )
-   install(FILES ${c_headers}
-           DESTINATION include/${PROJECT_NAME}
-           COMPONENT headers
-           )
 endif( ${WIN32} )
+
+install(FILES ${c_headers}
+#      ${CMAKE_CURRENT_BINARY_DIR}/hydrasdr_export.h
+       DESTINATION include/${PROJECT_NAME}
+       COMPONENT headers
+)
