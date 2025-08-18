@@ -17,19 +17,17 @@
 # along with this program; see the file COPYING.  If not, write to
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
-#
 
-if(NOT libhydrasdr_SOURCE_DIR)
-LIST(APPEND TOOLS_LINK_LIBS HydraSDR::hydrasdr)
+if(TARGET HydraSDR::hydrasdr)
+  list(APPEND TOOLS_LINK_LIBS HydraSDR::hydrasdr)
 else()
-LIST(APPEND TOOLS_LINK_LIBS hydrasdr)
+  list(APPEND TOOLS_LINK_LIBS HydraSDR::hydrasdr_static)
 endif()
 
 if(MSVC)
-add_library(libgetopt_static STATIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/../getopt/getopt.c
-)
-LIST(APPEND TOOLS_LINK_LIBS libgetopt_static)
+  add_library(libgetopt_static STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/../getopt/getopt.c)
+  list(APPEND TOOLS_LINK_LIBS libgetopt_static)
 endif()
 
 add_executable(hydrasdr_gpio hydrasdr_gpio.c)
@@ -42,7 +40,8 @@ install(TARGETS hydrasdr_gpiodir RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 add_executable(hydrasdr_lib_version hydrasdr_lib_version.c)
 target_link_libraries(hydrasdr_lib_version ${TOOLS_LINK_LIBS})
-install(TARGETS hydrasdr_lib_version RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS hydrasdr_lib_version
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 add_executable(hydrasdr_si5351c hydrasdr_si5351c.c)
 target_link_libraries(hydrasdr_si5351c ${TOOLS_LINK_LIBS})
@@ -74,4 +73,5 @@ install(TARGETS hydrasdr_reset RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 add_executable(hydrasdr_set_rf_port hydrasdr_set_rf_port.c)
 target_link_libraries(hydrasdr_set_rf_port ${TOOLS_LINK_LIBS})
-install(TARGETS hydrasdr_set_rf_port RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(TARGETS hydrasdr_set_rf_port
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
