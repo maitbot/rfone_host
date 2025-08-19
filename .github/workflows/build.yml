@@ -400,6 +400,12 @@ jobs:
           
           # Linux Mint (Ubuntu-based, use Ubuntu containers)
           - container: "ubuntu:24.04"
+            name: "Linux-Mint-22.1-Xia"
+            pkg_manager: "apt"
+            create_deb: true
+            deps: "build-essential cmake pkg-config libusb-1.0-0-dev"
+            mint_version: "22.1"
+          - container: "ubuntu:24.04"
             name: "Linux-Mint-22-Wilma"
             pkg_manager: "apt"
             create_deb: true
@@ -1177,6 +1183,7 @@ jobs:
         - **Ubuntu 24.04 LTS** (Noble Numbat) - \`sudo dpkg -i\` *[.zip also available for CI/CD]*
         - **Ubuntu 22.04 LTS** (Jammy Jellyfish) - \`sudo dpkg -i\` *[.zip also available for CI/CD]*
         - **Ubuntu 20.04 LTS** (Focal Fossa) - \`sudo dpkg -i\`
+        - **Linux Mint 22.1** (Xia) - \`sudo dpkg -i\`
         - **Linux Mint 22** (Wilma) - \`sudo dpkg -i\`
         - **Linux Mint 21.3** (Virginia) - \`sudo dpkg -i\`
         - **Linux Mint 21.2** (Victoria) - \`sudo dpkg -i\`
@@ -1293,15 +1300,15 @@ jobs:
         \`\`\`
 
         ### For CI/CD Workflows:
-        Ubuntu 22.04 and 24.04 also provide .zip archives for automated workflows:
+        Ubuntu 24.04 and 22.04 also provide .zip archives for automated workflows:
         \`\`\`bash
-        # Download Ubuntu .zip archive (for CI/CD)
-        wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Ubuntu-22.04-LTS-Jammy-Jellyfish-v${VERSION}.zip
-        unzip hydrasdr-host-tools-Ubuntu-22.04-LTS-Jammy-Jellyfish-v${VERSION}.zip
-        
-        # Or for Ubuntu 24.04:
+        # Download Ubuntu 24.04: .zip archive (for CI/CD)
         wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Ubuntu-24.04-LTS-Noble-Numbat-v${VERSION}.zip
         unzip hydrasdr-host-tools-Ubuntu-24.04-LTS-Noble-Numbat-v${VERSION}.zip
+        
+        # Or for Ubuntu 22.04:
+        wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Ubuntu-22.04-LTS-Jammy-Jellyfish-v${VERSION}.zip
+        unzip hydrasdr-host-tools-Ubuntu-22.04-LTS-Jammy-Jellyfish-v${VERSION}.zip
         \`\`\`
 
         ## System Requirements:
@@ -1321,7 +1328,7 @@ jobs:
         
         **Distribution-specific naming**: All packages use clear, descriptive names that identify their target distribution (e.g., \`hydrasdr-host-tools-Ubuntu-22.04-LTS-Jammy-Jellyfish-v${VERSION}.deb\`, \`hydrasdr-host-tools-Fedora-42-v${VERSION}.rpm\`).
         
-        **Special provision**: Ubuntu 22.04 and 24.04 provide both native .deb packages (recommended for users) and .zip archives (required for automated firmware build workflows).
+        **Special provision**: Ubuntu 24.04 and 22.04 provide both native .deb packages (recommended for users) and .zip archives (required for automated firmware build workflows).
 
         ## Notes:
         - **Native packages strongly recommended** for easiest installation experience
