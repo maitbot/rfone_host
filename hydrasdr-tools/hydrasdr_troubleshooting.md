@@ -68,23 +68,31 @@ Cheap StarTech.com 4 Port PCI Express PCIe SuperSpeed USB 2.0/3.0 Controller (PE
 
 More feedback are welcome about those cheap PCIe USB2.0/3.0 controller to ensure they work fine with HydraSDR RFOne + Host Tools (especially with Windows, Linux & MacOS).
 
-# How to check external clock is active
+# How to Check if the External Clock is Active
 
-The external REF clock frequency "CLKIN" is "hard coded in firmware" to 10MHz and it shall be connected and stable before to power on or reset of HydraSDR RFOne to switch on it as the detection mechanism is only done at startup, I do not think it is a big issue.
-For information you have also a convenient way to reset HydraSDR RFOne with a dedicated API and also the tool hydrasdr_reset
-You can check the external CLKIN is active with following steps:
-To check if the external clock was active while the HydraSDR RFOne was powered on the following command can be used:
+The external reference clock input (`CLKIN`) is fixed in firmware to **10 MHz**.
+- It must be connected and stable **before powering on or resetting** the HydraSDR RFOne, since the device only checks for a valid external clock during startup.
+  - If `CLKIN` is not detected, the internal TCXO will be used instead.
+  - If needed, HydraSDR RFOne can also be reset via the dedicated API or the `hydrasdr_reset` tool.
 
-        hydrasdr_si5351c -n 0 -r
-        If bit 4 is set then it is not using the clockin (TCXO is active clock)
-            [ 0] -> 0x11
-        if bit 4 is cleared then it is using the clockin (ext clock is active clock)
-            [ 0] -> 0x01
+To verify whether the external clock was active at power-on, run:
+```
+hydrasdr_si5351c -n 0 -r
+```
 
-The first nibble is bits 7-4 and the second nibble is bits 3-0, which can be confusing.
-The  HydraSDR RFOne only checks for a valid external 10MHz 3.3v CMOS clock once while it is being powered on.
-For technical details about the CLKIN Loss Of Signal register query in the command above see 
-section "8.1. Register Map Summary" and section "9. Register Descriptions" of SkyWorks AN619 - Manually Generating an Si5351 Register Map see https://www.skyworksinc.com/-/media/Skyworks/SL/documents/public/application-notes/AN619.pdf
+* **If bit 4 is set** → external `CLKIN` is *not* used (TCXO is the active clock).
+  Example: `[ 0] -> 0x11`
+* **If bit 4 is cleared** → external `CLKIN` *is* used (external clock is active).
+  Example: `[ 0] -> 0x01`
+
+Note: The output format can be confusing the **first nibble** represents bits 7–4, and the **second nibble** represents bits 3–0.
+
+For more details on the `CLKIN Loss Of Signal` register used in this check, see:
+* *AN619: Manually Generating an Si5351 Register Map* (Skyworks)
+  * Section **8.1 – Register Map Summary**
+  * Section **9 – Register Descriptions**
+  * [AN619 PDF](https://www.skyworksinc.com/-/media/Skyworks/SL/documents/public/application-notes/AN619.pdf)
+
 
 # Using multiple HydraSDR RFOne
 Multiple HydraSDR RFOne use case is mainly for Coherent Receiver Array, Direction Finding, Passive Radar ... which requires to have multiple HydraSDR RFOne running at same time (on the same PC).
