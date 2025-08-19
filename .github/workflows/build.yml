@@ -1156,6 +1156,7 @@ jobs:
     - name: Update Release Notes
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VERSION: ${{ needs.extract-version.outputs.version }}
       run: |
         gh release edit nightly -R ${{github.repository}} --notes "Automated nightly build from CI
 
@@ -1201,9 +1202,9 @@ jobs:
         \`\`\`bash
         # Download the appropriate .deb file for your distribution
         # Examples:
-        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Ubuntu-22.04-LTS-Jammy-Jellyfish-v1.0.1.deb
-        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Ubuntu-24.04-LTS-Noble-Numbat-v1.0.1.deb
-        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Debian-12-Bookworm-v1.0.1.deb
+        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Ubuntu-22.04-LTS-Jammy-Jellyfish-v${VERSION}.deb
+        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Ubuntu-24.04-LTS-Noble-Numbat-v${VERSION}.deb
+        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Debian-12-Bookworm-v${VERSION}.deb
         
         # Install the package
         sudo dpkg -i hydrasdr-host-tools-[DISTRIBUTION]-v[VERSION].deb
@@ -1218,8 +1219,8 @@ jobs:
         \`\`\`bash
         # Download the appropriate .rpm file for your distribution
         # Examples:
-        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Fedora-42-v1.0.1.rpm
-        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-AlmaLinux-9-v1.0.1.rpm
+        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Fedora-42-v${VERSION}.rpm
+        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-AlmaLinux-9-v${VERSION}.rpm
         
         # Install with automatic dependency resolution
         sudo dnf install ./hydrasdr-host-tools-[DISTRIBUTION]-v[VERSION].rpm
@@ -1231,7 +1232,7 @@ jobs:
         #### openSUSE (.rpm packages):
         \`\`\`bash
         # Download the appropriate .rpm file
-        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-openSUSE-Tumbleweed-v1.0.1.rpm
+        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-openSUSE-Tumbleweed-v${VERSION}.rpm
         
         # Install with automatic dependency resolution
         sudo zypper install ./hydrasdr-host-tools-openSUSE-Tumbleweed-v[VERSION].rpm
@@ -1243,7 +1244,7 @@ jobs:
         #### Arch Linux (.pkg.tar.zst packages):
         \`\`\`bash
         # Download the .pkg.tar.zst file
-        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Arch-Linux-v1.0.1.pkg.tar.zst
+        # wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Arch-Linux-v${VERSION}.pkg.tar.zst
         
         # Install with pacman
         sudo pacman -U hydrasdr-host-tools-Arch-Linux-v[VERSION].pkg.tar.zst
@@ -1295,12 +1296,12 @@ jobs:
         Ubuntu 22.04 and 24.04 also provide .zip archives for automated workflows:
         \`\`\`bash
         # Download Ubuntu .zip archive (for CI/CD)
-        wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Ubuntu-22.04-LTS-Jammy-Jellyfish-v1.0.1.zip
-        unzip hydrasdr-host-tools-Ubuntu-22.04-LTS-Jammy-Jellyfish-v1.0.1.zip
+        wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Ubuntu-22.04-LTS-Jammy-Jellyfish-v${VERSION}.zip
+        unzip hydrasdr-host-tools-Ubuntu-22.04-LTS-Jammy-Jellyfish-v${VERSION}.zip
         
         # Or for Ubuntu 24.04:
-        wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Ubuntu-24.04-LTS-Noble-Numbat-v1.0.1.zip
-        unzip hydrasdr-host-tools-Ubuntu-24.04-LTS-Noble-Numbat-v1.0.1.zip
+        wget https://github.com/hydrasdr/rfone_host/releases/download/nightly/hydrasdr-host-tools-Ubuntu-24.04-LTS-Noble-Numbat-v${VERSION}.zip
+        unzip hydrasdr-host-tools-Ubuntu-24.04-LTS-Noble-Numbat-v${VERSION}.zip
         \`\`\`
 
         ## System Requirements:
@@ -1318,7 +1319,7 @@ jobs:
         ## Comprehensive Distribution Coverage:
         This release provides native packages for **major GNU/Linux distributions** including all current LTS versions of Ubuntu, stable Debian releases, latest Fedora versions, and rolling-release distributions. 
         
-        **Distribution-specific naming**: All packages use clear, descriptive names that identify their target distribution (e.g., `hydrasdr-host-tools-Ubuntu-22.04-LTS-Jammy-Jellyfish-v1.0.1.deb`, `hydrasdr-host-tools-Fedora-42-v1.0.1.rpm`).
+        **Distribution-specific naming**: All packages use clear, descriptive names that identify their target distribution (e.g., \`hydrasdr-host-tools-Ubuntu-22.04-LTS-Jammy-Jellyfish-v${VERSION}.deb\`, \`hydrasdr-host-tools-Fedora-42-v${VERSION}.rpm\`).
         
         **Special provision**: Ubuntu 22.04 and 24.04 provide both native .deb packages (recommended for users) and .zip archives (required for automated firmware build workflows).
 
