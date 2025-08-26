@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component>
+  <id>com.hydrasdr.hydrasdr-tools</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2</project_license>
+  <name>hydrasdr-tools</name>
+  <developer id="com.hydrasdr">
+    <name>Benjamin VERNOUX</name>
+  </developer>
+  <summary>Control of HydraSDR RFOne radio receiver</summary>
+  <description>
+    <p>
+      HydraSDR RFOne is an open source Software Defined Radio
+      that can receive 24-1850 MHz.
+      It is a High Speed USB device powered by the USB bus.
+    </p>
+  </description>
+  <provides>
+    <modalias>usb:v38AFp0001d*</modalias>
+    <modalias>usb:v1D50p60A1d*</modalias>
+    <modalias>usb:v1FC9p000Cd*</modalias>
+  </provides>
+</component>
