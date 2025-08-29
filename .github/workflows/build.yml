@@ -11,9 +11,7 @@ name: Build and Release HydraSDR RFOne Host Tools + Shared Lib / DLL (Windows, G
 
 on:
   push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
   # Run automatically every monday
     schedule:
      - cron: 1 12 * * 1
