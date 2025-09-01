@@ -73,6 +73,7 @@ jobs:
       env:
         HOMEBREW_NO_AUTO_UPDATE: 1
       run: |
+        brew uninstall --ignore-dependencies cmake || true
         brew install --quiet cmake libusb pkg-config
 
     # === Windows Dependencies ===
